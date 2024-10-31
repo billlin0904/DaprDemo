@@ -3,17 +3,16 @@
 namespace SentimentScorer.Controllers
 {
     [ApiController]
-    [Route("score")]
-    public class SentimentScorer : ControllerBase
+    public class SentimentScorerController : ControllerBase
     {
-        private readonly ILogger<SentimentScorer> _logger;
+        private readonly ILogger<SentimentScorerController> _logger;
 
-        public SentimentScorer(ILogger<SentimentScorer> logger)
+        public SentimentScorerController(ILogger<SentimentScorerController> logger)
         {
             _logger = logger;
         }
 
-        [HttpPost]
+        [HttpPost("score")]
         public IActionResult ScoreTweet([FromBody] Tweet tweet)
         {
             // Simple sentiment scoring logic for demonstration purposes

@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace TweetViewer.Controllers
 {
     [ApiController]
-    public class TweetViewer : ControllerBase
+    public class TweetViewerController : ControllerBase
     {
-        private readonly ILogger<TweetViewer> _logger;
+        private readonly ILogger<TweetViewerController> _logger;
         private readonly WebSocketHandler _webSocketHandler;
 
-        public TweetViewer(ILogger<TweetViewer> logger, WebSocketHandler webSocketHandler)
+        public TweetViewerController(ILogger<TweetViewerController> logger, WebSocketHandler webSocketHandler)
         {
             _logger = logger;
             _webSocketHandler = webSocketHandler;
