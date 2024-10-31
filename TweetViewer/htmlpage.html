@@ -1,0 +1,35 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Tweet Viewer</title>
+</head>
+<body>
+<h1>Real-time Tweets</h1>
+<div id="tweets"></div>
+
+<script type="text/javascript">
+        // 建立 WebSocket 連接到 WebSocketHandler
+        const socket = new WebSocket("ws://localhost:5000/ws");
+
+        // 當接收到訊息時更新推文列表
+        socket.onmessage = function(event) {
+            const sentiment = JSON.parse(event.data);
+            const tweetsDiv = document.getElementById("tweets");
+            const tweetElement = document.createElement("p");
+            tweetElement.textContent = `Sentiment: ${sentiment.sentiment}, Confidence: ${sentiment.confidence}, Text: ${sentiment.text}`;
+            tweetsDiv.appendChild(tweetElement);
+        };
+
+        // 當連接建立時
+        socket.onopen = function() {
+            console.log("Connected to WebSocket");
+        };
+
+        // 當連接關閉時
+        socket.onclose = function() {
+            console.log("Disconnected from WebSocket");
+        };
+    </script>
+</body>
+</html>
