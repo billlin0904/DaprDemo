@@ -3,7 +3,9 @@
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
-EXPOSE 80
+EXPOSE 5002
+
+ENV ASPNETCORE_URLS=http://+:5002
 
 
 # This stage is used to build the service project
