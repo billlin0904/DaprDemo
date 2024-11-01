@@ -3,28 +3,28 @@
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
-EXPOSE 5003
+EXPOSE 5002
 
-ENV ASPNETCORE_URLS=http://+:5003
+ENV ASPNETCORE_URLS=http://+:5002
 
 
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["TweetViewer.csproj", "."]
-RUN dotnet restore "./TweetViewer.csproj"
+COPY ["TweetProvider/TweetProvider.csproj", "TweetProvider/"]
+RUN dotnet restore "./TweetProvider/TweetProvider.csproj"
 COPY . .
-WORKDIR "/src/."
-RUN dotnet build "./TweetViewer.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/TweetProvider"
+RUN dotnet build "./TweetProvider.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./TweetViewer.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./TweetProvider.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "TweetViewer.dll"]
+ENTRYPOINT ["dotnet", "TweetProvider.dll"]

@@ -1,13 +1,13 @@
 {
   "profiles": {
-    "TweetViewer": {
+    "TweetProvider": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5034"
+      "applicationUrl": "http://localhost:5227"
     },
     "IIS Express": {
       "commandName": "IISExpress",
@@ -21,7 +21,7 @@
       "launchBrowser": true,
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
-        "ASPNETCORE_URLS": "http://+:5003"
+        "ASPNETCORE_URLS": "http://+:5002"
       },
       "publishAllPorts": true,
       "useSSL": false
@@ -31,7 +31,7 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:37778",
+      "applicationUrl": "http://localhost:26074",
       "sslPort": 0
     }
   }

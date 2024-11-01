@@ -1,4 +1,5 @@
-﻿using Dapr.Client;
+﻿using Dapr;
+using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
 
 namespace TweetProcessor.Controllers
@@ -15,6 +16,7 @@ namespace TweetProcessor.Controllers
             _logger = logger;
         }
 
+        [Topic("tweets-pubsub", "tweets")]
         [HttpPost("/tweets")]
         public async Task<IActionResult> ProcessTweet([FromBody] Tweet tweet)
         {
