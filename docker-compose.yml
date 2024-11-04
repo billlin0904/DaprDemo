@@ -7,9 +7,10 @@ services:
       context: SentimentScorer
       dockerfile: Dockerfile
     ports:
-      - "5001:80"
+      - "5000:5000"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
     depends_on:
       - mongodb
       - redis
@@ -20,9 +21,10 @@ services:
       context: TweetProcessor
       dockerfile: Dockerfile
     ports:
-      - "5002:80"
+      - "5001:5001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5001
     depends_on:
       - sentimentscorer
       - mongodb
@@ -34,9 +36,10 @@ services:
       context: TweetProvider
       dockerfile: Dockerfile
     ports:
-      - "5003:80"
+      - "5002:5002"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5002
     depends_on:
       - tweetprocessor
       - redis
@@ -47,9 +50,10 @@ services:
       context: TweetViewer
       dockerfile: Dockerfile
     ports:
-      - "5004:80"
+      - "5003:5003"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5003
     depends_on:
       - tweetprovider
 
