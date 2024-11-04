@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  sentimentscorer:
+    image: ${DOCKER_REGISTRY-}sentimentscorer
+    build:
+      context: SentimentScorer
+      dockerfile: Dockerfile
+    ports:
+      - "5001:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - mongodb
+      - redis
+
+  tweetprocessor:
+    image: ${DOCKER_REGISTRY-}tweetprocessor
+    build:
+      context: TweetProcessor
+      dockerfile: Dockerfile
+    ports:
+      - "5002:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - sentimentscorer
+      - mongodb
+      - redis
+
+  tweetprovider:
+    image: ${DOCKER_REGISTRY-}tweetprovider
+    build:
+      context: TweetProvider
+      dockerfile: Dockerfile
+    ports:
+      - "5003:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - tweetprocessor
+      - redis
+
+  tweetviewer:
+    image: ${DOCKER_REGISTRY-}tweetviewer
+    build:
+      context: TweetViewer
+      dockerfile: Dockerfile
+    ports:
+      - "5004:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - tweetprovider
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    environment:
+      - MONGO_INITDB_DATABASE=tweetsdb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  mongo_data:
