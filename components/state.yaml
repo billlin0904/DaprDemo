@@ -1,0 +1,14 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: tweets
+spec:
+  type: state.mongodb
+  version: v1
+  metadata:
+    - name: connectionString
+      value: "mongodb://localhost:27017"
+    - name: databaseName
+      value: "tweetsdb"
+    - name: collectionName
+      value: "tweets"
