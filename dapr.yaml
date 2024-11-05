@@ -1,0 +1,29 @@
+apps:
+- appDirPath: SentimentScorer
+  appID: sentimentscorer
+  appPort: 5033
+  command:
+  - dotnet
+  - run
+- appDirPath: TweetViewer
+  appID: tweetviewer
+  appPort: 5034
+  command:
+  - dotnet
+  - run
+- appDirPath: TweetProvider
+  appID: tweetprovider
+  appPort: 5227
+  command:
+  - dotnet
+  - run
+- appDirPath: TweetProcessor
+  appID: tweetprocessor
+  appPort: 5282
+  command:
+  - dotnet
+  - run
+common:
+  resourcesPaths:
+  - ./components
+version: 1
