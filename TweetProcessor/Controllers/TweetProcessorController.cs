@@ -23,14 +23,17 @@ namespace TweetProcessor.Controllers
             // Call Sentiment Scorer to analyze the sentiment of the tweet
             var result = await _daprClient.InvokeMethodAsync<Tweet, SentimentScore>(
                 HttpMethod.Post,
-                "sentiment-scorer",
+                "sentimentscorer-api",
                 "sentiment",
                 tweet);
 
             _logger.LogInformation($"Analyzed sentiment for tweet {tweet.Id}: Score: {result.Score}");
 
             // Save Tweet to MongoDB using State API
-            await _daprClient.SaveStateAsync("sentiment-scorer", tweet.Id, tweet);
+            //await _daprClient.SaveStateAsync("sentimentscorer", tweet.Id, tweet);
+            var state = await _daprClient.GetStateEntryAsync<SentimentScore>("sentiment-scorer", tweet.Id);
+            state.Value = result;
+            await state.SaveAsync();
             _logger.LogInformation($"Saved tweet with id {tweet.Id}");
 
             // Publish to Redis Pub/Sub for processed tweets

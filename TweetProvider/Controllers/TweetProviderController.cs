@@ -16,9 +16,13 @@ namespace TweetProvider.Controllers
         }
 
         [HttpPost("/tweets")]
-        public async Task<IActionResult> ProcessTweet([FromBody] Tweet tweet)
+        public async Task<IActionResult> ProcessTweet(Tweet tweet)
         {
-            await _daprClient.SaveStateAsync("tweet-store", tweet.Id, tweet);
+            var state = await _daprClient.GetStateEntryAsync<Tweet>("tweet-store", tweet.Id);
+            state.Value = tweet;
+            await state.SaveAsync();
+
+            //await _daprClient.SaveStateAsync("tweet-store", tweet.Id, tweet);
             _logger.LogInformation($"Saved tweet with id {tweet.Id}");
 
             await _daprClient.PublishEventAsync("tweets-pubsub", "tweets", tweet);

@@ -1,77 +1,178 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
-  sentimentscorer:
+
+  ############################
+  # Dapr actor placement service
+  ############################
+  dapr-placement:
+    image: "daprio/dapr:1.9.4"
+    command: ["./placement", "-port", "50000", "-log-level", "debug"]
+    ports:
+      - "50000:50000"
+  
+  ############################
+  # rabbitmq
+  ############################
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+ 
+  ############################
+  # Redis state store
+  ############################
+  redis:
+    image: redis:alpine
+    ports:
+      - "5379:6379"
+
+  ############################
+  # seq
+  ############################
+  seq:
+    environment:
+      - ACCEPT_EULA=Y
+    ports:
+      - "5340:80"
+    image: datalust/seq:latest
+
+  ############################
+  # zipkin-slim
+  ############################
+  zipkin:
+    image: openzipkin/zipkin-slim:latest
+    ports:
+      - "5411:9411"
+
+  ############################
+  # SentimentScorer
+  ############################
+  sentimentscorer-api:
     image: ${DOCKER_REGISTRY-}sentimentscorer
     build:
       context: SentimentScorer
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "5101:80"
+      - "50002:50001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5000
-    depends_on:
-      - mongodb
-      - redis
+      - ASPNETCORE_URLS=http://+:80
+      - RetryMigrations=true
+      - SeqServerUrl=http://seq    
 
-  tweetprocessor:
+  sentimentscorer-dapr:
+    image: "daprio/daprd:1.9.4"
+    network_mode: "service:sentimentscorer-api"
+    depends_on:
+      - sentimentscorer-api
+    command: ["./daprd",
+      "-app-id", "sentimentscorer-api",
+      "-app-port", "80",
+      "-placement-host-address", "dapr-placement:50000",
+      "-components-path", "/components",
+      ]
+    volumes:
+      - "./dapr/components/:/components"
+
+  ############################
+  # TweetProcessor
+  ############################
+  tweetprocessor-api:
     image: ${DOCKER_REGISTRY-}tweetprocessor
     build:
       context: TweetProcessor
       dockerfile: Dockerfile
     ports:
-      - "5001:5001"
+      - "5102:80"
+      - "50009:50001"
+    depends_on:
+      - redis
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5001
-    depends_on:
-      - sentimentscorer
-      - mongodb
-      - redis
+      - ASPNETCORE_URLS=http://+:80
+      - RetryMigrations=true
+      - SeqServerUrl=http://seq    
 
-  tweetprovider:
+  tweetprocessor-dapr:
+    image: "daprio/daprd:1.9.4"
+    network_mode: "service:tweetprocessor-api"
+    depends_on:
+      - tweetprocessor-api
+    command: ["./daprd",
+      "-app-id", "tweetprocessor-api",
+      "-app-port", "80",
+      "-placement-host-address", "dapr-placement:50000",
+      "-components-path", "/components",
+      ]
+    volumes:
+      - "./dapr/components/:/components"
+
+  ############################
+  # TweetProvider
+  ############################
+  tweetprovider-api:
     image: ${DOCKER_REGISTRY-}tweetprovider
     build:
       context: TweetProvider
       dockerfile: Dockerfile
     ports:
-      - "5002:5002"
+      - "5103:80"
+      - "50010:50001"
+    depends_on:
+      - redis
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5002
-    depends_on:
-      - tweetprocessor
-      - redis
+      - ASPNETCORE_URLS=http://+:80
+      - RetryMigrations=true
+      - SeqServerUrl=http://seq    
 
-  tweetviewer:
+  tweetprovider-dapr:
+    image: "daprio/daprd:1.9.4"
+    network_mode: "service:tweetprovider-api"
+    depends_on:
+      - tweetprovider-api
+    command: ["./daprd",
+      "-app-id", "tweetprovider-api",
+      "-app-port", "80",
+      "-placement-host-address", "dapr-placement:50000",
+      "-components-path", "/components",
+      ]
+    volumes:
+      - "./dapr/components/:/components"
+
+  ############################
+  # TweetViewer
+  ############################
+  tweetviewer-api:
     image: ${DOCKER_REGISTRY-}tweetviewer
     build:
       context: TweetViewer
       dockerfile: Dockerfile
     ports:
-      - "5003:5003"
+      - "5104:80"
+      - "50011:50001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5003
+      - ASPNETCORE_URLS=http://+:80
+      - RetryMigrations=true
+      - SeqServerUrl=http://seq    
+
+  tweetviewer-dapr:
+    image: "daprio/daprd:1.9.4"
+    network_mode: "service:tweetviewer-api"
     depends_on:
-      - tweetprovider
-
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    environment:
-      - MONGO_INITDB_DATABASE=tweetsdb
-    ports:
-      - "27017:27017"
+      - tweetviewer-api
+    command: ["./daprd",
+      "-app-id", "tweetviewer-api",
+      "-app-port", "80",
+      "-placement-host-address", "dapr-placement:50000",
+      "-components-path", "/components",
+      ]
     volumes:
-      - mongo_data:/data/db
+      - "./dapr/components/:/components"
 
-  redis:
-    image: redis:latest
-    container_name: redis
-    ports:
-      - "6379:6379"
-
-volumes:
-  mongo_data:
+networks:
+  dapr-network:
+    driver: bridge

@@ -1,13 +1,21 @@
-﻿using Microsoft.OpenApi.Models;
+﻿using Dapr.Client;
+using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace TweetProvider
 {
     public class Startup
     {
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
+        public IConfiguration Configuration { get; }
+
         public void ConfigureServices(IServiceCollection services)
         {
             // 加入 Dapr 支援
-            services.AddDaprClient();
             services.AddControllers().AddDapr();
             // 加入 Swagger
             services.AddSwaggerGen(c =>

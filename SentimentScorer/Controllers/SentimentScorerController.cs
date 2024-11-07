@@ -12,8 +12,8 @@ namespace SentimentScorer.Controllers
             _logger = logger;
         }
 
-        [HttpPost("score")]
-        public IActionResult ScoreTweet([FromBody] Tweet tweet)
+        [HttpPost("sentiment")]
+        public IActionResult AnalyzeSentiment([FromBody] Tweet tweet)
         {
             // Simple sentiment scoring logic for demonstration purposes
             var score = new SentimentScore
