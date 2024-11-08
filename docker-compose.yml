@@ -41,7 +41,7 @@ services:
   # zipkin-slim
   ############################
   zipkin:
-    image: openzipkin/zipkin-slim:latest
+    image: openzipkin/zipkin:latest
     ports:
       - "5411:9411"
 
@@ -72,15 +72,17 @@ services:
       "-app-port", "80",
       "-placement-host-address", "dapr-placement:50000",
       "-components-path", "/components",
+      "-config", "/configuration/config.yaml"
       ]
     volumes:
       - "./dapr/components/:/components"
+      - "./dapr/configuration/:/configuration"
 
   ############################
   # TweetProcessor
   ############################
   tweetprocessor-api:
-    image: ${DOCKER_REGISTRY-}tweetprocessor
+    image: ${DOCKER_REGISTRY-}tweetprocessor    
     build:
       context: TweetProcessor
       dockerfile: Dockerfile
@@ -105,9 +107,11 @@ services:
       "-app-port", "80",
       "-placement-host-address", "dapr-placement:50000",
       "-components-path", "/components",
+      "-config", "/configuration/config.yaml"
       ]
     volumes:
       - "./dapr/components/:/components"
+      - "./dapr/configuration/:/configuration"
 
   ############################
   # TweetProvider
@@ -138,9 +142,14 @@ services:
       "-app-port", "80",
       "-placement-host-address", "dapr-placement:50000",
       "-components-path", "/components",
+      "-config", "/configuration/config.yaml"
       ]
+    annotations:
+      dapr.io/config: "tracing"
     volumes:
       - "./dapr/components/:/components"
+      - "./dapr/configuration/:/configuration"
+
 
   ############################
   # TweetViewer
@@ -169,9 +178,11 @@ services:
       "-app-port", "80",
       "-placement-host-address", "dapr-placement:50000",
       "-components-path", "/components",
+      "-config", "/configuration/config.yaml"
       ]
     volumes:
       - "./dapr/components/:/components"
+      - "./dapr/configuration/:/configuration"
 
 networks:
   dapr-network:
