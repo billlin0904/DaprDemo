@@ -1,3 +1,4 @@
+using Serilog;
 using TweetProcessor;
 public class Program
 {
@@ -11,5 +12,14 @@ public class Program
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseStartup<Startup>();
+            })
+            .UseSerilog((context, services, configuration) =>
+            {
+                var seqServerUrl = context.Configuration["SeqServerUrl"];
+                configuration
+                    .ReadFrom.Configuration(context.Configuration)
+                    .WriteTo.Console()
+                    .WriteTo.Seq(seqServerUrl!)
+                    .Enrich.WithProperty("ApplicationName", "TweetProcessor API");
             });
 }

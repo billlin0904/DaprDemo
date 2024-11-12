@@ -41,9 +41,26 @@ services:
   # zipkin-slim
   ############################
   zipkin:
-    image: openzipkin/zipkin:latest
+    image: openzipkin/zipkin-slim:latest
     ports:
       - "5411:9411"
+
+  ############################
+  # dashboard
+  ############################
+  dashboard:
+    image: "daprio/dashboard"
+    command: [ "-docker-compose=true", 
+      "-components-path=/components", 
+      "-config-path=/configuration/config.yaml",
+      "-docker-compose-path=/docker-compose.yml"
+    ]
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./dapr/components/:/components"
+      - "./dapr/configuration/:/configuration"
+      - "./docker-compose.yml:/docker-compose.yml"
 
   ############################
   # SentimentScorer
@@ -56,6 +73,9 @@ services:
     ports:
       - "5101:80"
       - "50002:50001"
+    depends_on:
+      - zipkin
+      - dapr-placement
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
@@ -66,7 +86,7 @@ services:
     image: "daprio/daprd:1.9.4"
     network_mode: "service:sentimentscorer-api"
     depends_on:
-      - sentimentscorer-api
+      - sentimentscorer-api      
     command: ["./daprd",
       "-app-id", "sentimentscorer-api",
       "-app-port", "80",
@@ -91,6 +111,8 @@ services:
       - "50009:50001"
     depends_on:
       - redis
+      - zipkin
+      - dapr-placement
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
@@ -126,6 +148,8 @@ services:
       - "50010:50001"
     depends_on:
       - redis
+      - zipkin
+      - dapr-placement
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
@@ -144,8 +168,6 @@ services:
       "-components-path", "/components",
       "-config", "/configuration/config.yaml"
       ]
-    annotations:
-      dapr.io/config: "tracing"
     volumes:
       - "./dapr/components/:/components"
       - "./dapr/configuration/:/configuration"
@@ -162,6 +184,9 @@ services:
     ports:
       - "5104:80"
       - "50011:50001"
+    depends_on:      
+      - zipkin
+      - dapr-placement
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80

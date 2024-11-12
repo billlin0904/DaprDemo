@@ -1,6 +1,6 @@
-using Dapr.Client;
-using Dapr.Extensions.Configuration;
 using TweetProvider;
+using Serilog;
+
 public class Program
 {
     public static void Main(string[] args)
@@ -10,13 +10,17 @@ public class Program
 
     private static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
-            //.ConfigureAppConfiguration(config =>
-            //{
-            //    config.AddDaprSecretStore("eshopondapr-secretstore",
-            //        new DaprClientBuilder().Build());
-            //})
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseStartup<Startup>();
+            })
+            .UseSerilog((context, services, configuration) =>
+            {
+                var seqServerUrl = context.Configuration["SeqServerUrl"];
+                configuration
+                    .ReadFrom.Configuration(context.Configuration)
+                    .WriteTo.Console()
+                    .WriteTo.Seq(seqServerUrl!)
+                    .Enrich.WithProperty("ApplicationName", "TweetProvider API");
             });
 }
