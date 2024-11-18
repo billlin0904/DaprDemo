@@ -50,7 +50,6 @@ namespace TweetProvider.Actors
             var tweet = JsonSerializer.Deserialize<Tweet>(text);
             await _daprClient.PublishEventAsync("tweets-pubsub", "tweets", tweet);
             _logger.LogInformation($"Published scored tweet {tweet.Id}");
-            await DeleteActorAsync();
         }
     }
 }

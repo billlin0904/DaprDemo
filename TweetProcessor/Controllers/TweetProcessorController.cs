@@ -29,14 +29,13 @@ namespace TweetProcessor.Controllers
 
             _logger.LogInformation($"Analyzed sentiment for tweet {tweet.Id}: Score: {result.Score}");
 
-            // Save Tweet to MongoDB using State API
-            //await _daprClient.SaveStateAsync("sentimentscorer", tweet.Id, tweet);
+            // Save Tweet to Redis using State API
             var state = await _daprClient.GetStateEntryAsync<SentimentScore>("sentiment-scorer", tweet.Id);
             state.Value = result;
             await state.SaveAsync();
             _logger.LogInformation($"Saved tweet with id {tweet.Id}");
 
-            // Publish to Redis Pub/Sub for processed tweets
+            // Publish to RabbitMQ Pub/Sub for processed tweets
             await _daprClient.PublishEventAsync("processed-tweets-pubsub", "processed-tweets", result);
             _logger.LogInformation($"Published scored tweet {tweet.Id}");
             

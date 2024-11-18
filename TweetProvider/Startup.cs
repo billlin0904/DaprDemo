@@ -1,7 +1,11 @@
 ﻿using Dapr.Client;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Configuration;
+using Quartz;
+using Quartz.Impl;
 using TweetProvider.Actors;
+using Quartz.Spi;
+using TweetProvider.Jobs;
 
 namespace TweetProvider
 {
@@ -28,9 +32,14 @@ namespace TweetProvider
             {
                 option.Actors.RegisterActor<OrderStatusActor>();
             });
+
+            services.AddQuartz();
+            services.AddSingleton<IJobFactory, PublishEventJobFactory>();
+            services.AddTransient<PublishEventJob>();
+            services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime lifetime)
         {
             //if (env.IsDevelopment())
             {
@@ -44,6 +53,10 @@ namespace TweetProvider
                     c.RoutePrefix = string.Empty; // 這會將 Swagger 設為應用程式的根路徑
                 });
             }
+
+            //var quartz = app.ApplicationServices.GetRequiredService<QuartzStartup>();
+            //lifetime.ApplicationStarted.Register(quartz.Start);
+            //lifetime.ApplicationStopped.Register(quartz.Stop);
 
             app.UseRouting();
             app.UseCloudEvents();

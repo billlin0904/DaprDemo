@@ -1,10 +1,9 @@
-﻿using System.Security.Cryptography;
-using Dapr.Actors;
-using Dapr.Actors.Client;
-using Dapr.Client;
+﻿using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
-using TweetProvider.Actors;
+using Quartz;
+using TweetProvider.Jobs;
+using Quartz.Impl.Matchers;
 
 namespace TweetProvider.Controllers
 {
@@ -12,11 +11,13 @@ namespace TweetProvider.Controllers
     public class TweetProviderController : ControllerBase
     {
         private readonly DaprClient _daprClient;
+        private readonly ISchedulerFactory _schedulerFactory;
         private readonly ILogger<TweetProviderController> _logger;
 
-        public TweetProviderController(DaprClient daprClient, IActorProxyFactory actorProxyFactory, ILogger<TweetProviderController> logger)
+        public TweetProviderController(DaprClient daprClient, ISchedulerFactory schedulerFactory, ILogger<TweetProviderController> logger)
         {
             _daprClient = daprClient;
+            _schedulerFactory = schedulerFactory;
             _logger = logger;
         }
 
@@ -27,34 +28,25 @@ namespace TweetProvider.Controllers
             state.Value = tweet;
             await state.SaveAsync();
 
-            //await _daprClient.SaveStateAsync("tweet-store", tweet.Id, tweet);
+            tweet.Id = Guid.NewGuid().ToString("N");
+
+            await _daprClient.SaveStateAsync("tweet-store", tweet.Id, tweet);
             _logger.LogInformation($"Saved tweet with id {tweet.Id}");
 
-            //await _daprClient.PublishEventAsync("tweets-pubsub", "tweets", tweet);
-            //_logger.LogInformation($"Published scored tweet {tweet.Id}");
+            var scheduler = await _schedulerFactory.GetScheduler();
+            var job = JobBuilder.Create<PublishEventJob>()
+                .WithIdentity(tweet.Id, "tweets")
+                .UsingJobData("TopicName", "tweets")
+                .UsingJobData("PubSubName", "tweets-pubsub")
+                .UsingJobData("EventPayload", JsonSerializer.Serialize(tweet))
+                .Build();
 
-            //tweet.Id = Guid.NewGuid().ToString("N");
-            var actorId = new ActorId("process-" + tweet.Id);
-            var proxy = ActorProxy.Create<IOrderStatusActor>(actorId, "OrderStatusActor");
+            var trigger = TriggerBuilder.Create()
+                .WithIdentity($"trigger-{tweet.Id}", "tweets")
+                .StartAt(DateTimeOffset.UtcNow.AddSeconds(new Random().Next(10, 30)))
+                .Build();
 
-            try
-            {
-                if (await proxy.GetStatus(tweet.Id) == "process")
-                {
-                    return Conflict();
-                }
-            }
-            catch (ActorMethodInvocationException ex)
-            {
-            }
-
-            var _ = await proxy.Process(tweet.Id);
-
-            var now = DateTime.UtcNow;
-            var targetTime = DateTime.UtcNow.AddSeconds(new Random().Next(3, 6));
-            var dueTime = targetTime - now;
-
-            await proxy.StartTimerAsync(tweet.Id, JsonSerializer.Serialize(tweet), dueTime);
+            await scheduler.ScheduleJob(job, trigger);
 
             return Ok();
         }
@@ -62,11 +54,55 @@ namespace TweetProvider.Controllers
         [HttpPost("/cancel")]
         public async Task<IActionResult> ProcessCancel(string tweetId)
         {
-            var actorId = new ActorId("process-" + tweetId);
-            var proxy = ActorProxy.Create<IOrderStatusActor>(actorId, "OrderStatusActor");
-            await proxy.StopTimerAsync(tweetId);
+            var scheduler = await _schedulerFactory.GetScheduler();
+            var jobKey = new JobKey(tweetId, "tweets");
+            var jobDeleted = await scheduler.DeleteJob(jobKey);
 
-            return Ok();
+            if (jobDeleted)
+            {
+                return Ok($"Job {tweetId} cancelled successfully.");
+            }
+            else
+            {
+                return NotFound($"Job {tweetId} not found.");
+            }
+        }
+
+        [HttpGet("all-jobs")]
+        public async Task<IActionResult> GetAllJobsWithStatus()
+        {
+            var scheduler = await _schedulerFactory.GetScheduler();
+            var jobGroupNames = await scheduler.GetJobGroupNames();
+
+            var jobs = new List<object>();
+
+            foreach (var group in jobGroupNames)
+            {
+                var jobKeys = await scheduler.GetJobKeys(GroupMatcher<JobKey>.GroupEquals(group));
+
+                foreach (var jobKey in jobKeys)
+                {
+                    var triggers = await scheduler.GetTriggersOfJob(jobKey);
+
+                    foreach (var trigger in triggers)
+                    {
+                        var triggerState = await scheduler.GetTriggerState(trigger.Key);
+                        var nextFireTime = trigger.GetNextFireTimeUtc()?.ToLocalTime();
+                        var previousFireTime = trigger.GetPreviousFireTimeUtc()?.ToLocalTime();
+
+                        jobs.Add(new
+                        {
+                            JobName = jobKey.Name,
+                            Group = jobKey.Group,
+                            Trigger = trigger.Key.Name,
+                            State = triggerState.ToString(),
+                            NextFireTime = nextFireTime.HasValue ? nextFireTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A",
+                            PreviousFireTime = previousFireTime.HasValue ? previousFireTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A"
+                        });
+                    }
+                }
+            }
+            return Ok(jobs);
         }
     }
 }
