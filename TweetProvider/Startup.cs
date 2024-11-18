@@ -1,11 +1,13 @@
 ﻿using Dapr.Client;
+using Dapr.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.Configuration;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using Quartz;
-using Quartz.Impl;
 using TweetProvider.Actors;
 using Quartz.Spi;
 using TweetProvider.Jobs;
+using TweetProvider.DbContexts;
 
 namespace TweetProvider
 {
@@ -16,10 +18,20 @@ namespace TweetProvider
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
+        public IConfiguration Configuration { get; set; }
 
         public void ConfigureServices(IServiceCollection services)
         {
+            var daprClient = new DaprClientBuilder().Build();
+            var secretStoreName = "secretstore";
+
+            Configuration = new ConfigurationBuilder()
+                .AddConfiguration(Configuration)
+                .AddDaprSecretStore(secretStoreName, daprClient)
+                .Build();
+
+            services.AddSingleton<IConfiguration>(Configuration);
+
             // 加入 Dapr 支援
             services.AddControllers().AddDapr();
             // 加入 Swagger
@@ -33,7 +45,14 @@ namespace TweetProvider
                 option.Actors.RegisterActor<OrderStatusActor>();
             });
 
+            services.AddDbContext<PublishEventDbContext>(options =>
+            {
+                var connectionString = Configuration["ConnectionStrings:PublishEventDB"];
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+            });
+
             services.AddQuartz();
+            services.AddTransient<PublishEventDbContext>();
             services.AddSingleton<IJobFactory, PublishEventJobFactory>();
             services.AddTransient<PublishEventJob>();
             services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);

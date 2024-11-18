@@ -13,6 +13,23 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TweetProvider", "TweetProvi
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{868F774D-8BF4-4BAD-AE0C-2E8C3F419C03}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{46128E88-0932-4A90-967C-D9A3F2819C6A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", "{311FCA8D-0F40-438A-BE8B-08D2032EF2CE}"
+	ProjectSection(SolutionItems) = preProject
+		dapr\components\processed-pubsub.yaml = dapr\components\processed-pubsub.yaml
+		dapr\components\pubsub.yaml = dapr\components\pubsub.yaml
+		dapr\components\secrets.json = dapr\components\secrets.json
+		dapr\components\secretstore.yaml = dapr\components\secretstore.yaml
+		dapr\components\sentiment-scorer.yaml = dapr\components\sentiment-scorer.yaml
+		dapr\components\tweet-store.yaml = dapr\components\tweet-store.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "configuration", "configuration", "{39CF57C9-71C9-4F09-8DD4-209DC7AE01E4}"
+	ProjectSection(SolutionItems) = preProject
+		dapr\configuration\config.yaml = dapr\configuration\config.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +63,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{311FCA8D-0F40-438A-BE8B-08D2032EF2CE} = {46128E88-0932-4A90-967C-D9A3F2819C6A}
+		{39CF57C9-71C9-4F09-8DD4-209DC7AE01E4} = {46128E88-0932-4A90-967C-D9A3F2819C6A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B9C61AD8-0D46-4884-A8E1-5B2D65A7AB93}

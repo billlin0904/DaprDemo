@@ -4,6 +4,10 @@ using System.Text.Json;
 using Quartz;
 using TweetProvider.Jobs;
 using Quartz.Impl.Matchers;
+using Microsoft.EntityFrameworkCore;
+using TweetProvider.DbContexts;
+using TweetProvider.DTOs;
+using Google.Api;
 
 namespace TweetProvider.Controllers
 {
@@ -13,10 +17,12 @@ namespace TweetProvider.Controllers
         private readonly DaprClient _daprClient;
         private readonly ISchedulerFactory _schedulerFactory;
         private readonly ILogger<TweetProviderController> _logger;
+        private readonly PublishEventDbContext _dbContext;
 
-        public TweetProviderController(DaprClient daprClient, ISchedulerFactory schedulerFactory, ILogger<TweetProviderController> logger)
+        public TweetProviderController(DaprClient daprClient, PublishEventDbContext dbContext, ISchedulerFactory schedulerFactory, ILogger<TweetProviderController> logger)
         {
             _daprClient = daprClient;
+            _dbContext = dbContext;
             _schedulerFactory = schedulerFactory;
             _logger = logger;
         }
@@ -48,6 +54,18 @@ namespace TweetProvider.Controllers
 
             await scheduler.ScheduleJob(job, trigger);
 
+            _dbContext.Add(new PublishEventModel
+            {
+                JobName = tweet.Id,
+                JobGroup = "tweets",
+                TopicName = "tweets",
+                PubsubName = "tweets-pubsub",
+                EventPayload = JsonSerializer.Serialize(tweet),
+                State = 1
+            });
+
+            await _dbContext.SaveChangesAsync();
+
             return Ok();
         }
 
@@ -68,8 +86,8 @@ namespace TweetProvider.Controllers
             }
         }
 
-        [HttpGet("all-jobs")]
-        public async Task<IActionResult> GetAllJobsWithStatus()
+        [HttpGet("scheduler-jobs")]
+        public async Task<IActionResult> GetGetSchedulerJobs()
         {
             var scheduler = await _schedulerFactory.GetScheduler();
             var jobGroupNames = await scheduler.GetJobGroupNames();
@@ -103,6 +121,37 @@ namespace TweetProvider.Controllers
                 }
             }
             return Ok(jobs);
+        }
+
+        private string MapState(int state)
+        {
+            return state switch
+            {
+                0 => "Pending",
+                1 => "Running",
+                2 => "Completed",
+                3 => "Failed",
+                _ => "Unknown"
+            };
+        }
+
+        [HttpGet("all-jobs")]
+        public async Task<IActionResult> GetAllJobsWithStatus()
+        {
+            var jobs = await _dbContext.PublishEventJobs.ToListAsync();
+
+            var result = jobs.Select(job => new
+            {
+                JobId = job.JobId,
+                JobName = job.JobName,
+                JobGroup = job.JobGroup,
+                TopicName = job.TopicName,
+                PubsubName = job.PubsubName,
+                EventPayload = job.EventPayload,
+                State = MapState(job.State)
+            }).ToList();
+
+            return Ok(result);
         }
     }
 }

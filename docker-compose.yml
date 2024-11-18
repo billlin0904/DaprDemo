@@ -38,6 +38,21 @@ services:
     image: datalust/seq:latest
 
   ############################
+  # MySQL
+  ############################
+  mariadb:
+    image: mariadb
+    ports:
+      - "3307:3306"
+    environment:
+        MYSQL_ROOT_PASSWORD: password
+        MYSQL_DATABASE: tweetdb
+        MYSQL_USER: tweetuser
+        MYSQL_PASSWORD: password
+    volumes:
+      - ./sqls/initdb.sql:/docker-entrypoint-initdb.d/1.sql
+
+  ############################
   # zipkin-slim
   ############################
   zipkin:
