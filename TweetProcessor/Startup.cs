@@ -39,6 +39,7 @@ namespace TweetProcessor
                 // 加入 Dapr 的訂閱端點，讓 Dapr 自動發現 Pub/Sub 訂閱
                 endpoints.MapSubscribeHandler();
                 endpoints.MapControllers();
+                //endpoints.MapActorsHandlers();
             });
         }
     }

@@ -1,6 +1,7 @@
 ﻿using Dapr.Client;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Configuration;
+using TweetProvider.Actors;
 
 namespace TweetProvider
 {
@@ -21,6 +22,11 @@ namespace TweetProvider
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "TweetProvider API", Version = "v1" });
+            });
+
+            services.AddActors(option =>
+            {
+                option.Actors.RegisterActor<OrderStatusActor>();
             });
         }
 
@@ -47,6 +53,7 @@ namespace TweetProvider
                 // 加入 Dapr 的訂閱端點，讓 Dapr 自動發現 Pub/Sub 訂閱
                 endpoints.MapSubscribeHandler();
                 endpoints.MapControllers();
+                endpoints.MapActorsHandlers();
             });
         }
     }

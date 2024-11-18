@@ -20,8 +20,6 @@ namespace TweetProcessor.Controllers
         [HttpPost("/tweets")]
         public async Task<IActionResult> ProcessTweet([FromBody] Tweet tweet)
         {
-            // HTTP
-            // GRPC - protobuf
             // Call Sentiment Scorer to analyze the sentiment of the tweet
             var result = await _daprClient.InvokeMethodAsync<Tweet, SentimentScore>(
                 HttpMethod.Post,
@@ -41,7 +39,7 @@ namespace TweetProcessor.Controllers
             // Publish to Redis Pub/Sub for processed tweets
             await _daprClient.PublishEventAsync("processed-tweets-pubsub", "processed-tweets", result);
             _logger.LogInformation($"Published scored tweet {tweet.Id}");
-
+            
             return Ok();
         }
     }
