@@ -1,13 +1,37 @@
-﻿using Microsoft.OpenApi.Models;
+﻿using Dapr.Client;
+using Dapr.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
+using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
+using TweetViewer.Services;
 
 namespace TweetViewer
 {
     public class Startup
     {
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+        public IConfiguration Configuration { get; set; }
+
         public void ConfigureServices(IServiceCollection services)
         {
-            // 注入 WebSocketHandler 作為單例
-            services.AddSingleton<WebSocketHandler>();
+            var daprClient = new DaprClientBuilder().Build();
+            var secretStoreName = "secretstore";
+
+            Configuration = new ConfigurationBuilder()
+                .AddConfiguration(Configuration)
+                .AddDaprSecretStore(secretStoreName, daprClient)
+                .Build();
+
+            services.AddSingleton<IConfiguration>(Configuration);
+
+            var connectionString = Configuration["ConnectionStrings:GameConfigRedis"];
+            services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(connectionString));
+            services.AddSingleton<PlayerSettingsService>();
+            // 注入 WebSocketHub 作為單例
+            services.AddSingleton<WebSocketHub>();
             // 加入 Dapr 支援
             services.AddDaprClient();
             services.AddControllers().AddDapr();
@@ -46,7 +70,7 @@ namespace TweetViewer
                 // 設置 WebSocket 路徑
                 endpoints.Map("/ws", async context =>
                 {
-                    var webSocketHandler = context.RequestServices.GetRequiredService<WebSocketHandler>();
+                    var webSocketHandler = context.RequestServices.GetRequiredService<WebSocketHub>();
                     await webSocketHandler.Handle(context);
                 });
             });

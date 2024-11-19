@@ -201,6 +201,7 @@ services:
       - "50011:50001"
     depends_on:      
       - zipkin
+      - redis 
       - dapr-placement
     environment:
       - ASPNETCORE_ENVIRONMENT=Development

@@ -1,5 +1,6 @@
 ﻿using Dapr;
 using Microsoft.AspNetCore.Mvc;
+using StackExchange.Redis;
 
 namespace TweetViewer.Controllers
 {
@@ -7,12 +8,12 @@ namespace TweetViewer.Controllers
     public class TweetViewerController : ControllerBase
     {
         private readonly ILogger<TweetViewerController> _logger;
-        private readonly WebSocketHandler _webSocketHandler;
-
-        public TweetViewerController(ILogger<TweetViewerController> logger, WebSocketHandler webSocketHandler)
+        private readonly WebSocketHub _webSocketHub;
+        
+        public TweetViewerController(WebSocketHub webSocketHub, ILogger<TweetViewerController> logger)
         {
+            _webSocketHub = webSocketHub;
             _logger = logger;
-            _webSocketHandler = webSocketHandler;
         }
 
         [HttpPost("/tweets/processed")]
@@ -21,7 +22,7 @@ namespace TweetViewer.Controllers
         {
             _logger.LogInformation($"Displaying tweet with id {score.TweetId}, Sentiment Score: {score.Score}");
             // 通過 WebSocket 發送消息到前端
-            await _webSocketHandler.SendMessageAsync(score);
+            await _webSocketHub.SendMessageAsync(score);
             return Ok();
         }
     }

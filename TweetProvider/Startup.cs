@@ -8,6 +8,7 @@ using TweetProvider.Actors;
 using Quartz.Spi;
 using TweetProvider.Jobs;
 using TweetProvider.DbContexts;
+using StackExchange.Redis;
 
 namespace TweetProvider
 {
@@ -45,6 +46,7 @@ namespace TweetProvider
                 option.Actors.RegisterActor<OrderStatusActor>();
             });
 
+            
             services.AddDbContext<PublishEventDbContext>(options =>
             {
                 var connectionString = Configuration["ConnectionStrings:PublishEventDB"];
@@ -55,10 +57,12 @@ namespace TweetProvider
             services.AddTransient<PublishEventDbContext>();
             services.AddSingleton<IJobFactory, PublishEventJobFactory>();
             services.AddTransient<PublishEventJob>();
+
+            // This will add a hosted Quartz server into ASP.NET Core process that will be started and stopped based on applications lifetime.
             services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime lifetime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             //if (env.IsDevelopment())
             {
@@ -72,10 +76,6 @@ namespace TweetProvider
                     c.RoutePrefix = string.Empty; // 這會將 Swagger 設為應用程式的根路徑
                 });
             }
-
-            //var quartz = app.ApplicationServices.GetRequiredService<QuartzStartup>();
-            //lifetime.ApplicationStarted.Register(quartz.Start);
-            //lifetime.ApplicationStopped.Register(quartz.Stop);
 
             app.UseRouting();
             app.UseCloudEvents();
